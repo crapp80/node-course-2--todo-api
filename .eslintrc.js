@@ -1,7 +1,10 @@
 module.exports = {
     "extends": "airbnb-base",
     "env": {
-        "mocha": true
+        "mocha": true,
+        "mongo": true,
+        "node": true,
+        "es6": true,
     },
     "plugins": [
         "chai-friendly"
