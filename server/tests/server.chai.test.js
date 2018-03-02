@@ -1,7 +1,3 @@
-/* disable eslint errors for test syntax */
-/* eslint-disable no-undef */
-/* eslint-disable no-unused-vars */
-
 const chai = require('chai');
 const chaiHTTP = require('chai-http');
 

@@ -16,4 +16,7 @@ module.exports = {
               }
             ]
     },
+    "globals": {
+        "done": false
+    },
 };

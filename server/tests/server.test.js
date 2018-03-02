@@ -1,6 +1,3 @@
-/* disable eslint errors for test syntax */
-/* eslint-disable no-undef */
-
 const expect = require('expect');
 const request = require('supertest');
 
