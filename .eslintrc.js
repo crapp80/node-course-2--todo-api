@@ -17,9 +17,12 @@ module.exports = {
               {
                 "varsIgnorePattern": "should|expect"
               }
+            ],
+        "import/no-extraneous-dependencies": [
+              "error",
+              {
+                "devDependencies": true
+              }
             ]
-    },
-    "globals": {
-        "done": false
     },
 };
