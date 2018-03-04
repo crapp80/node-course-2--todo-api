@@ -99,7 +99,8 @@ describe('GET /todos/:id', () => {
   });
 
   it('should return 404 for non-object ids', (done) => {
-    const id = '1';
+    // create an invaild ObjectID
+    const id = '123';
     chai.request(app)
       .get(`/todos/${id}'`)
       .end((res) => {
