@@ -1,5 +1,9 @@
+/* ignore error when calling the '_id' property on dummyTodos */
+/* eslint-disable no-underscore-dangle */
+
 const chai = require('chai');
 const chaiHTTP = require('chai-http');
+const { ObjectID } = require('mongodb');
 
 const { app } = require('../server');
 const { Todo } = require('../models/todo.js');
@@ -10,8 +14,10 @@ chai.use(chaiHTTP);
 
 // dummy test objects
 const dummyTodos = [{
+  _id: new ObjectID(),
   text: 'First test todo',
 }, {
+  _id: new ObjectID(),
   text: 'Second test todo',
 }];
 
@@ -67,5 +73,38 @@ describe('GET /todos', () => {
         res.body.todos.should.have.lengthOf(2);
         done();
       }).catch(e => done(e));
+  });
+});
+
+describe('GET /todos/:id', () => {
+  it('should return todo doc', (done) => {
+    chai.request(app)
+      .get(`/todos/${dummyTodos[0]._id.toHexString()}`)
+      .then((res) => {
+        res.should.have.status(200);
+        res.body.todo.text.should.equals(dummyTodos[0].text);
+        done();
+      }).catch(e => done(e));
+  });
+
+  it('should return 404 if todo not found', (done) => {
+    // create a valid ObjectID
+    const id = new ObjectID().toHexString();
+    chai.request(app)
+      .get(`/todos/${id}`)
+      .end((res) => {
+        res.should.have.status(404);
+        return done();
+      });
+  });
+
+  it('should return 404 for non-object ids', (done) => {
+    const id = '1';
+    chai.request(app)
+      .get(`/todos/${id}'`)
+      .end((res) => {
+        res.should.have.status(404);
+        return done();
+      });
   });
 });
