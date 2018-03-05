@@ -15,6 +15,8 @@ const dummyTodos = [{
 }, {
   _id: new ObjectID(),
   text: 'Second test todo',
+  completed: true,
+  completedAt: 333,
 }];
 
 // make sure the database is empty before every request & insert dummyTodos
@@ -139,6 +141,50 @@ describe('DELETE /todos/:id', () => {
     request(app)
       .delete(`/todos/${id}`)
       .expect(404)
+      .end(done);
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('should update the todo', (done) => {
+    const id = dummyTodos[0]._id.toHexString();
+    const text = 'Todo changed';
+
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        completed: true,
+        text,
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo).toMatchObject({
+          text,
+          completed: true,
+          completedAt: expect.any(Number),
+        });
+      })
+      .end(done);
+  });
+
+  it('should clear completedAt when todo is not completed', (done) => {
+    const id = dummyTodos[1]._id.toHexString();
+    const text = 'Todo changed';
+
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        completed: false,
+        text,
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo).toMatchObject({
+          text,
+          completed: false,
+          completedAt: null,
+        });
+      })
       .end(done);
   });
 });

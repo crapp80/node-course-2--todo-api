@@ -20,6 +20,8 @@ const dummyTodos = [{
 }, {
   _id: new ObjectID(),
   text: 'Second test todo',
+  completed: true,
+  completedAt: 333,
 }];
 
 // make sure the database is empty before every request & insert dummyTodos
@@ -103,7 +105,7 @@ describe('GET /todos/:id', () => {
     // create an invaild ObjectID
     const id = '123';
     chai.request(app)
-      .get(`/todos/${id}'`)
+      .get(`/todos/${id}`)
       .end((res) => {
         res.should.have.status(404);
         return done();
@@ -146,9 +148,57 @@ describe('DELETE /todos/:id', () => {
     // create an invaild ObjectID
     const id = '123';
     chai.request(app)
-      .delete(`/todos/${id}'`)
+      .delete(`/todos/${id}`)
       .end((res) => {
         res.should.have.status(404);
+        return done();
+      });
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('should update the todo', (done) => {
+    const id = dummyTodos[0]._id.toHexString();
+    const text = 'Todo changed';
+
+    chai.request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        completed: true,
+        text,
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        res.should.have.status(200);
+        res.body.todo.text.should.equal(text);
+        res.body.todo.completed.should.be.true;
+        res.body.todo.completedAt.should.be.a('number');
+        return done();
+      });
+  });
+
+  it('should clear completedAt when todo is not completed', (done) => {
+    const id = dummyTodos[1]._id.toHexString();
+    const text = 'Todo changed';
+
+    chai.request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        completed: false,
+        text,
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        res.should.have.status(200);
+        res.body.todo.text.should.equal(text);
+        res.body.todo.completed.should.be.false;
+        expect(res.body.todo.completedAt).to.be.null;
         return done();
       });
   });
