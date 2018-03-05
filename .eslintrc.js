@@ -15,7 +15,7 @@ module.exports = {
         "no-unused-vars": [
               "error",
               {
-                "varsIgnorePattern": "should|expect"
+                "varsIgnorePattern": "should|expect|mongoose"
               }
             ],
         "import/no-extraneous-dependencies": [
