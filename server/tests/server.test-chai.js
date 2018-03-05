@@ -9,6 +9,7 @@ const { app } = require('../server');
 const { Todo } = require('../models/todo.js');
 
 const should = chai.should();
+const { expect } = require('chai');
 
 chai.use(chaiHTTP);
 
@@ -103,6 +104,49 @@ describe('GET /todos/:id', () => {
     const id = '123';
     chai.request(app)
       .get(`/todos/${id}'`)
+      .end((res) => {
+        res.should.have.status(404);
+        return done();
+      });
+  });
+});
+
+describe('DELETE /todos/:id', () => {
+  it('should delete a todo by ID', (done) => {
+    const id = dummyTodos[1]._id.toHexString();
+    chai.request(app)
+      .delete(`/todos/${id}`)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        res.should.have.status(200);
+        res.body.todo._id.should.equals(id);
+        return Todo.findById(id).then((todo) => {
+          // switched to expect assertion library, because should
+          // can't assert this case
+          expect(todo).to.be.null;
+          done();
+        }).catch(e => done(e));
+      });
+  });
+
+  it('should return 404 if todo not found', (done) => {
+    // create a valid ObjectID
+    const id = new ObjectID().toHexString();
+    chai.request(app)
+      .delete(`/todos/${id}`)
+      .end((res) => {
+        res.should.have.status(404);
+        return done();
+      });
+  });
+
+  it('should return 404 for non-object ids', (done) => {
+    // create an invaild ObjectID
+    const id = '123';
+    chai.request(app)
+      .delete(`/todos/${id}'`)
       .end((res) => {
         res.should.have.status(404);
         return done();

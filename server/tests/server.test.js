@@ -1,3 +1,6 @@
+/* ignore error when calling the '_id' property on dummyTodos */
+/* eslint-disable no-underscore-dangle */
+
 const expect = require('expect');
 const request = require('supertest');
 const { ObjectID } = require('mongodb');
@@ -98,6 +101,43 @@ describe('GET /todos/:id', () => {
     const id = '123';
     request(app)
       .get(`/todos/${id}`)
+      .expect(404)
+      .end(done);
+  });
+});
+
+describe('DELETE /todos/:id', () => {
+  it('should delete a todo by ID', (done) => {
+    const id = dummyTodos[1]._id.toHexString();
+    request(app)
+      .delete(`/todos/${id}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo._id).toBe(id);
+      })
+      .end((err) => {
+        if (err) {
+          return done(err);
+        }
+        return Todo.findById(id).then((todo) => {
+          expect(todo).toBeFalsy();
+          done();
+        }).catch(e => done(e));
+      });
+  });
+
+  it('should return 404 if todo not found', (done) => {
+    const id = new ObjectID().toHexString();
+    request(app)
+      .delete(`/todos/${id}`)
+      .expect(404)
+      .end(done);
+  });
+
+  it('should return 404 for non-object ids', (done) => {
+    const id = '123';
+    request(app)
+      .delete(`/todos/${id}`)
       .expect(404)
       .end(done);
   });
