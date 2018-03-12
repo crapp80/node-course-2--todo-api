@@ -7,29 +7,21 @@ const { ObjectID } = require('mongodb');
 
 const { app } = require('../server');
 const { Todo } = require('../models/todo.js');
+const { User } = require('../models/user');
+const {
+  dummyTodos,
+  populateTodos,
+  users,
+  populateUsers,
+} = require('./seed/seed');
 
 const should = chai.should();
 const { expect } = require('chai');
 
 chai.use(chaiHTTP);
 
-// dummy test objects
-const dummyTodos = [{
-  _id: new ObjectID(),
-  text: 'First test todo',
-}, {
-  _id: new ObjectID(),
-  text: 'Second test todo',
-  completed: true,
-  completedAt: 333,
-}];
-
-// make sure the database is empty before every request & insert dummyTodos
-beforeEach((done) => {
-  Todo.remove({})
-    .then(() => Todo.insertMany(dummyTodos))
-    .then(() => done());
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('* USING CHAI * POST /todos', () => {
   it('should create a new todo', (done) => {
@@ -199,6 +191,86 @@ describe('PATCH /todos/:id', () => {
         res.body.todo.text.should.equal(text);
         res.body.todo.completed.should.be.false;
         expect(res.body.todo.completedAt).to.be.null;
+        return done();
+      });
+  });
+});
+
+describe('GET /users/me', () => {
+  it('should return user if authenticated', (done) => {
+    chai.request(app)
+      .get('/users/me')
+      // set header
+      .set('x-auth', users[0].tokens[0].token)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        res.should.have.status(200);
+        res.body._id.should.equal(users[0]._id.toHexString());
+        res.body.email.should.equal(users[0].email);
+        return done();
+      });
+  });
+
+  it('should return 401 if not authenticated', (done) => {
+    chai.request(app)
+      .get('/users/me')
+      .end((res) => {
+        expect(res).to.have.status(401);
+        expect(res.body).to.be.undefined;
+        return done();
+      });
+  });
+});
+
+describe('POST /users', () => {
+  it('should create a user', (done) => {
+    const email = 'example@example.com';
+    const password = '123mnb!';
+
+    chai.request(app)
+      .post('/users')
+      .send({ email, password })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        res.should.have.status(200);
+        res.headers['x-auth'].should.exist;
+        res.body._id.should.exist;
+        res.body.email.should.equal(email);
+        return User.findOne({ email }).then((user) => {
+          user.should.exist;
+          user.password.should.not.equal(password);
+          done();
+        });
+      });
+  });
+
+  it('should return validation errors if request invalid', (done) => {
+    const email = 'abcde';
+    const password = '12c';
+
+    chai.request(app)
+      .post('/users')
+      .send({ email, password })
+      .end((res) => {
+        res.should.have.status(400);
+        return done();
+      });
+  });
+
+  it('should not create user if email in use', (done) => {
+    const password = 'abc123!';
+
+    chai.request(app)
+      .post('/users')
+      .send({ email: users[0].email, password })
+      .end((res) => {
+        res.should.have.status(400);
         return done();
       });
   });
