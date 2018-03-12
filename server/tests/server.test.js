@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 
 const { app } = require('../server');
 const { Todo } = require('../models/todo');
+const { User } = require('../models/user');
 const {
   dummyTodos,
   populateTodos,
@@ -176,6 +177,79 @@ describe('PATCH /todos/:id', () => {
           completedAt: null,
         });
       })
+      .end(done);
+  });
+});
+
+describe('GET /users/me', () => {
+  it('should return user if authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      // set header
+      .set('x-auth', users[0].tokens[0].token)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body._id).toBe(users[0]._id.toHexString());
+        expect(res.body.email).toBe(users[0].email);
+      })
+      .end(done);
+  });
+
+  it('should return 401 if not authenticated', (done) => {
+    request(app)
+      .get('/users/me')
+      .expect(401)
+      .expect((res) => {
+        expect(res.body).toEqual({});
+      })
+      .end(done);
+  });
+});
+
+describe('POST /users', () => {
+  it('should create a user', (done) => {
+    const email = 'example@example.com';
+    const password = '123mnb!';
+
+    request(app)
+      .post('/users')
+      .send({ email, password })
+      .expect(200)
+      .expect((res) => {
+        expect(res.headers['x-auth']).toEqual(expect.anything());
+        expect(res.body._id).toEqual(expect.anything());
+        expect(res.body.email).toBe(email);
+      })
+      .end((err) => {
+        if (err) {
+          return done(err);
+        }
+        return User.findOne({ email }).then((user) => {
+          expect(user).toEqual(expect.anything());
+          expect(user.password).not.toBe(password);
+          done();
+        });
+      });
+  });
+
+  it('should return validation errors if request invalid', (done) => {
+    const email = 'abcde';
+    const password = '12c';
+
+    request(app)
+      .post('/users')
+      .send({ email, password })
+      .expect(400)
+      .end(done);
+  });
+
+  it('should not create user if email in use', (done) => {
+    const password = 'abc123!';
+
+    request(app)
+      .post('/users')
+      .send({ email: users[0].email, password })
+      .expect(400)
       .end(done);
   });
 });
