@@ -29,6 +29,7 @@ describe('* USING CHAI * POST /todos', () => {
 
     chai.request(app)
       .post('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .send({ text })
       .end((err, res) => {
         if (err) {
@@ -48,6 +49,7 @@ describe('* USING CHAI * POST /todos', () => {
   it('should not create todo with invalid body data', (done) => {
     chai.request(app)
       .post('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .send({})
       .end((err, res) => {
         res.should.have.status(400);
@@ -63,9 +65,10 @@ describe('GET /todos', () => {
   it('should get all todos', (done) => {
     chai.request(app)
       .get('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .then((res) => {
         res.should.have.status(200);
-        res.body.todos.should.have.lengthOf(2);
+        res.body.todos.should.have.lengthOf(1);
         done();
       }).catch(e => done(e));
   });
@@ -75,11 +78,23 @@ describe('GET /todos/:id', () => {
   it('should return todo doc', (done) => {
     chai.request(app)
       .get(`/todos/${dummyTodos[0]._id.toHexString()}`)
+      .set('x-auth', users[0].tokens[0].token)
       .then((res) => {
         res.should.have.status(200);
         res.body.todo.text.should.equals(dummyTodos[0].text);
         done();
-      }).catch(e => done(e));
+      })
+      .catch(e => done(e));
+  });
+
+  it('should not return todo doc created by other user', (done) => {
+    chai.request(app)
+      .get(`/todos/${dummyTodos[1]._id.toHexString()}`)
+      .set('x-auth', users[0].tokens[0].token)
+      .end((res) => {
+        res.should.have.status(404);
+        done();
+      });
   });
 
   it('should return 404 if todo not found', (done) => {
@@ -87,6 +102,7 @@ describe('GET /todos/:id', () => {
     const id = new ObjectID().toHexString();
     chai.request(app)
       .get(`/todos/${id}`)
+      .set('x-auth', users[0].tokens[0].token)
       .end((res) => {
         res.should.have.status(404);
         return done();
@@ -98,6 +114,7 @@ describe('GET /todos/:id', () => {
     const id = '123';
     chai.request(app)
       .get(`/todos/${id}`)
+      .set('x-auth', users[0].tokens[0].token)
       .end((res) => {
         res.should.have.status(404);
         return done();
@@ -110,6 +127,7 @@ describe('DELETE /todos/:id', () => {
     const id = dummyTodos[1]._id.toHexString();
     chai.request(app)
       .delete(`/todos/${id}`)
+      .set('x-auth', users[1].tokens[0].token)
       .end((err, res) => {
         if (err) {
           return done(err);
@@ -125,11 +143,26 @@ describe('DELETE /todos/:id', () => {
       });
   });
 
+  it('should not delete a todo by ID if created by other user', (done) => {
+    const id = dummyTodos[0]._id.toHexString();
+    chai.request(app)
+      .delete(`/todos/${id}`)
+      .set('x-auth', users[1].tokens[0].token)
+      .end((res) => {
+        res.should.have.status(404);
+        return Todo.findById(id).then((todo) => {
+          expect(todo).to.exist;
+          done();
+        }).catch(e => done(e));
+      });
+  });
+
   it('should return 404 if todo not found', (done) => {
     // create a valid ObjectID
     const id = new ObjectID().toHexString();
     chai.request(app)
       .delete(`/todos/${id}`)
+      .set('x-auth', users[1].tokens[0].token)
       .end((res) => {
         res.should.have.status(404);
         return done();
@@ -141,6 +174,7 @@ describe('DELETE /todos/:id', () => {
     const id = '123';
     chai.request(app)
       .delete(`/todos/${id}`)
+      .set('x-auth', users[1].tokens[0].token)
       .end((res) => {
         res.should.have.status(404);
         return done();
@@ -155,6 +189,7 @@ describe('PATCH /todos/:id', () => {
 
     chai.request(app)
       .patch(`/todos/${id}`)
+      .set('x-auth', users[0].tokens[0].token)
       .send({
         completed: true,
         text,
@@ -172,12 +207,30 @@ describe('PATCH /todos/:id', () => {
       });
   });
 
+  it('should not update the todo if created by other user', (done) => {
+    const id = dummyTodos[0]._id.toHexString();
+    const text = 'Todo changed';
+
+    chai.request(app)
+      .patch(`/todos/${id}`)
+      .set('x-auth', users[1].tokens[0].token)
+      .send({
+        completed: true,
+        text,
+      })
+      .end((err, res) => {
+        res.should.have.status(404);
+        return done();
+      });
+  });
+
   it('should clear completedAt when todo is not completed', (done) => {
     const id = dummyTodos[1]._id.toHexString();
     const text = 'Todo changed';
 
     chai.request(app)
       .patch(`/todos/${id}`)
+      .set('x-auth', users[1].tokens[0].token)
       .send({
         completed: false,
         text,
@@ -288,7 +341,7 @@ describe('/POST /users/login', () => {
         res.should.have.status(200);
         res.should.have.header('x-auth');
         return User.findById(users[1]._id).then((user) => {
-          user.tokens[0].should.include({ access: 'auth', token: res.headers['x-auth'] });
+          user.tokens[1].should.include({ access: 'auth', token: res.headers['x-auth'] });
           done();
         }).catch(e => done(e));
       });
@@ -302,7 +355,7 @@ describe('/POST /users/login', () => {
         res.should.have.status(400);
         res.should.not.have.header('x-auth');
         return User.findById(users[1]._id).then((user) => {
-          user.tokens.should.be.empty;
+          user.tokens.length.should.equal(1);
           done();
         }).catch(e => done(e));
       });
