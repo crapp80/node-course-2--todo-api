@@ -20,17 +20,23 @@ const users = [{
   _id: userTwoId,
   email: 'you@example.com',
   password: 'userTwoPass',
+  tokens: [{
+    access: 'auth',
+    token: jwt.sign({ _id: userTwoId.toHexString(), access: 'auth' }, 'mySecretSalt').toString(),
+  }],
 }];
 
 // dummy test objects
 const dummyTodos = [{
   _id: new ObjectID(),
   text: 'First test todo',
+  _creator: userOneId,
 }, {
   _id: new ObjectID(),
   text: 'Second test todo',
   completed: true,
   completedAt: 333,
+  _creator: userTwoId,
 }];
 
 // make sure the database is empty before every request & insert dummyTodos
