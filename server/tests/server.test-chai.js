@@ -286,7 +286,7 @@ describe('/POST /users/login', () => {
           return done(err);
         }
         res.should.have.status(200);
-        res.headers['x-auth'].should.exist;
+        res.should.have.header('x-auth');
         return User.findById(users[1]._id).then((user) => {
           user.tokens[0].should.include({ access: 'auth', token: res.headers['x-auth'] });
           done();
@@ -300,9 +300,9 @@ describe('/POST /users/login', () => {
       .send({ email: users[1].email, password: 'myPassTest' })
       .end((res) => {
         res.should.have.status(400);
-        expect(res.response.headers['x-auth']).to.not.exist;
+        res.should.not.have.header('x-auth');
         return User.findById(users[1]._id).then((user) => {
-          expect(user.tokens).to.be.empty;
+          user.tokens.should.be.empty;
           done();
         }).catch(e => done(e));
       });
