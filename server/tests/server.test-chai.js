@@ -275,3 +275,36 @@ describe('POST /users', () => {
       });
   });
 });
+
+describe('/POST /users/login', () => {
+  it('should login user and create auth token', (done) => {
+    chai.request(app)
+      .post('/users/login')
+      .send({ email: users[1].email, password: users[1].password })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        res.should.have.status(200);
+        res.headers['x-auth'].should.exist;
+        return User.findById(users[1]._id).then((user) => {
+          user.tokens[0].should.include({ access: 'auth', token: res.headers['x-auth'] });
+          done();
+        }).catch(e => done(e));
+      });
+  });
+
+  it('should reject invalid login', (done) => {
+    chai.request(app)
+      .post('/users/login')
+      .send({ email: users[1].email, password: 'myPassTest' })
+      .end((res) => {
+        res.should.have.status(400);
+        expect(res.response.headers['x-auth']).to.not.exist;
+        return User.findById(users[1]._id).then((user) => {
+          expect(user.tokens).to.be.empty;
+          done();
+        }).catch(e => done(e));
+      });
+  });
+});
