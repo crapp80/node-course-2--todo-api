@@ -70,7 +70,8 @@ describe('GET /todos', () => {
         res.should.have.status(200);
         res.body.todos.should.have.lengthOf(1);
         done();
-      }).catch(e => done(e));
+      })
+      .catch(e => done(e));
   });
 });
 
